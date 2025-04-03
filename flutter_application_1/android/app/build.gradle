@@ -1,40 +1,3 @@
-// plugins {
-//     id 'com.android.application'
-//     id 'dev.flutter.flutter-gradle-plugin'
-// }
-
-// android {
-//     namespace 'com.example.flutter_application_1'
-
-//     // Explicitly define compileSdk and buildToolsVersion
-//     compileSdk 34 // Change to 35 if needed
-//     buildToolsVersion "34.0.0" // Ensure this matches the installed version
-
-//     ndkVersion flutter.ndkVersion
-
-//     compileOptions {
-//         sourceCompatibility JavaVersion.VERSION_11
-//         targetCompatibility JavaVersion.VERSION_11
-//     }
-
-//     defaultConfig {
-//         applicationId "com.example.flutter_application_1"
-//         minSdk 21  // Define explicitly instead of flutter.minSdkVersion
-//         targetSdk 34  // Ensure this matches compileSdk version
-//         versionCode 1
-//         versionName "1.0"
-//     }
-
-//     buildTypes {
-//         release {
-//             signingConfig signingConfigs.debug // Debug signing config for now
-//         }
-//     }
-// }
-
-// flutter {
-//     source '../..'
-// }
 plugins {
     id 'com.android.application'
     id 'dev.flutter.flutter-gradle-plugin'
@@ -43,8 +6,8 @@ plugins {
 android {
     namespace 'com.example.flutter_application_1'
 
-    // Define compileSdk and buildToolsVersion
-    compileSdk 34
+    // Updated compileSdk version to 35
+    compileSdk 35
     buildToolsVersion "34.0.0"
 
     // Fix NDK version issue
@@ -58,7 +21,7 @@ android {
     defaultConfig {
         applicationId "com.example.flutter_application_1"
         minSdkVersion 23  // Increased from 21 to 23 (Required by Firebase)
-        targetSdkVersion 34  // Ensure this matches compileSdk version
+        targetSdkVersion 35  // Ensure this matches compileSdk version
         versionCode 1
         versionName "1.0"
     }
@@ -73,3 +36,44 @@ android {
 flutter {
     source '../..'
 }
+
+
+
+// plugins {
+//     id 'com.android.application'
+//     id 'dev.flutter.flutter-gradle-plugin'
+// }
+
+// android {
+//     namespace 'com.example.flutter_application_1'
+
+//     // Define compileSdk and buildToolsVersion
+//     compileSdk 34
+//     buildToolsVersion "34.0.0"
+
+//     // Fix NDK version issue
+//     ndkVersion "27.0.12077973" // Explicitly setting NDK version required by Firebase
+
+//     compileOptions {
+//         sourceCompatibility JavaVersion.VERSION_11
+//         targetCompatibility JavaVersion.VERSION_11
+//     }
+
+//     defaultConfig {
+//         applicationId "com.example.flutter_application_1"
+//         minSdkVersion 23  // Increased from 21 to 23 (Required by Firebase)
+//         targetSdkVersion 34  // Ensure this matches compileSdk version
+//         versionCode 1
+//         versionName "1.0"
+//     }
+
+//     buildTypes {
+//         release {
+//             signingConfig signingConfigs.debug // Debug signing config for now
+//         }
+//     }
+// }
+
+// flutter {
+//     source '../..'
+// }

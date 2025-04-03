@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:telephony/telephony.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -6,215 +9,174 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int selectedMonth = 1; // January
-  int selectedYear = 2021;
-  double totalExpenses = 4853.72;
-  double totalIncome = 8700.00;
-  double totalBalance = 3846.28;
-
-  List<Map<String, dynamic>> transactions = [
-    {"date": "Jan 03, Sunday", "transactions": [
-      {"category": "Clothing", "amount": -65.55, "method": "Card", "icon": Icons.shopping_bag},
-      {"category": "Broadband Bill", "amount": -80.00, "method": "Card", "icon": Icons.wifi},
-      {"category": "Shopping", "amount": -120.00, "method": "Card", "icon": Icons.store},
-      {"category": "Bills", "amount": -150.60, "method": "Wallet", "icon": Icons.receipt}
-    ]},
-    {"date": "Jan 02, Saturday", "transactions": [
-      {"category": "Entertainment", "amount": -30.15, "method": "Card", "icon": Icons.movie},
-      {"category": "Snacks", "amount": -55.00, "method": "Wallet", "icon": Icons.fastfood},
-      {"category": "Health", "amount": -50.00, "method": "Card", "icon": Icons.local_hospital}
-    ]},
-  ];
-
-  void _changeMonth(int direction) {
-    setState(() {
-      selectedMonth += direction;
-      if (selectedMonth == 0) {
-        selectedMonth = 12;
-        selectedYear--;
-      } else if (selectedMonth == 13) {
-        selectedMonth = 1;
-        selectedYear++;
-      }
-    });
-  }
+  bool isPermissionGranted = false;
+  List<String> accountNumbers = []; // Stores extracted account numbers
+  List<SmsMessage> transactionMessages = [];
+  final Telephony telephony = Telephony.instance;
+  int currentIndex = 0; // Track which account is being processed
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.menu, color: Colors.black),
-          onPressed: () {},
-        ),
-        title: Text(
-          "MyMoney",
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
+  void initState() {
+    super.initState();
+    _checkPermission();
+  }
+
+  Future<void> _checkPermission() async {
+    var status = await Permission.sms.status;
+
+    if (status.isGranted) {
+      setState(() => isPermissionGranted = true);
+      _fetchTransactionMessages(); // Fetch messages immediately
+    } else {
+      _requestPermission();
+    }
+  }
+
+  Future<void> _requestPermission() async {
+    var status = await Permission.sms.request();
+
+    if (status.isGranted) {
+      setState(() => isPermissionGranted = true);
+      _fetchTransactionMessages(); // Fetch messages after granting permission
+    } else {
+      _showPermissionDeniedDialog();
+    }
+  }
+
+  Future<void> _showPermissionDeniedDialog() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("Permission Required"),
+        content: Text("This app needs SMS permission to read transaction messages."),
         actions: [
-          IconButton(
-            icon: Icon(Icons.search, color: Colors.black),
-            onPressed: () {},
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _requestPermission();
+            },
+            child: Text("Grant Permission"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
           ),
         ],
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Future<void> _fetchTransactionMessages() async {
+    List<SmsMessage> messages = await telephony.getInboxSms(
+      columns: [SmsColumn.BODY, SmsColumn.ADDRESS, SmsColumn.DATE],
+    );
+
+    List<SmsMessage> filteredMessages = messages.where((msg) {
+      return _isTransactionMessage(msg.body!);
+    }).toList();
+
+    // Extract unique account numbers from all messages
+    Set<String> extractedNumbers = {};
+    for (var msg in filteredMessages) {
+      String? accNo = _extractAccountNumber(msg.body!);
+      if (accNo != null) extractedNumbers.add(accNo);
+    }
+
+    setState(() {
+      transactionMessages = filteredMessages;
+      accountNumbers = extractedNumbers.toList();
+    });
+
+    if (accountNumbers.isNotEmpty) {
+      _showSelectionDialog(currentIndex);
+    }
+  }
+
+  bool _isTransactionMessage(String message) {
+    List<String> keywords = ["debited", "txn", "transaction", "UPI", "balance", "INR"];
+    return keywords.any((keyword) => message.toLowerCase().contains(keyword));
+  }
+
+  String? _extractAccountNumber(String message) {
+    RegExp regExp = RegExp(r'A\/C\s?[Xx]*?(\d{4})'); // Extracts last 4 digits
+    Match? match = regExp.firstMatch(message);
+    return match != null ? match.group(1) : null;
+  }
+
+  Future<void> _showSelectionDialog(int index) async {
+    if (index >= accountNumbers.length) return; // Stop if all accounts are processed
+
+    String accountNo = accountNumbers[index];
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("A/C No. $accountNo"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Month Selector
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_left, size: 24, color: Colors.black),
-                  onPressed: () => _changeMonth(-1),
-                ),
-                Text(
-                  "${_getMonthName(selectedMonth)}, $selectedYear",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: Icon(Icons.arrow_right, size: 24, color: Colors.black),
-                  onPressed: () => _changeMonth(1),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 10),
-
-            // Expense, Income & Total
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _summaryItem("EXPENSE", totalExpenses, Colors.red),
-                  _summaryItem("INCOME", totalIncome, Colors.green),
-                  _summaryItem("TOTAL", totalBalance, Colors.black),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 20),
-
-            // Transactions List
-            Expanded(
-              child: ListView.builder(
-                itemCount: transactions.length,
-                itemBuilder: (context, index) {
-                  final transactionDate = transactions[index]["date"];
-                  final transactionList = transactions[index]["transactions"];
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(top: 10, bottom: 5),
-                        child: Text(
-                          transactionDate,
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
-                        ),
-                      ),
-                      ...transactionList.map<Widget>((transaction) {
-                        return TransactionCard(transaction: transaction);
-                      }).toList(),
-                    ],
-                  );
-                },
-              ),
-            ),
+            _buildOptionTile(accountNo, "Account Number"),
+            _buildOptionTile(accountNo, "Credit Card"),
+            _buildOptionTile(accountNo, "Debit Card"),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blueAccent,
-        child: Icon(Icons.add, color: Colors.white),
-        onPressed: () {
-          // Future: Add Manual Transaction
+    );
+  }
+
+  Widget _buildOptionTile(String accountNo, String option) {
+    return ListTile(
+      title: Text(option),
+      leading: Radio<String>(
+        value: option,
+        groupValue: null,
+        onChanged: (value) {
+          _saveSelection(accountNo, value!);
+          Navigator.pop(context);
+
+          // Move to the next account number selection
+          if (currentIndex < accountNumbers.length - 1) {
+            currentIndex++;
+            _showSelectionDialog(currentIndex);
+          }
         },
       ),
     );
   }
 
-  Widget _summaryItem(String title, double amount, Color color) {
-    return Column(
-      children: [
-        Text(
-          title,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54),
-        ),
-        SizedBox(height: 4),
-        Text(
-          "₹${amount.toStringAsFixed(2)}",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
-        ),
-      ],
-    );
+  Future<void> _saveSelection(String accountNo, String value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString("selected_${accountNo}", value);
   }
-
-  String _getMonthName(int month) {
-    List<String> months = [
-      "", "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-    return months[month];
-  }
-}
-
-class TransactionCard extends StatelessWidget {
-  final Map<String, dynamic> transaction;
-
-  const TransactionCard({super.key, required this.transaction});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white,
-      margin: EdgeInsets.symmetric(vertical: 4),
-      elevation: 2,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Colors.blueGrey[50],
-          child: Icon(transaction["icon"], color: Colors.blueGrey),
-        ),
-        title: Text(
-          transaction["category"],
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          transaction["method"],
-          style: TextStyle(color: Colors.grey),
-        ),
-        trailing: Text(
-          "${transaction["amount"] < 0 ? '-' : ''}₹${transaction["amount"].abs().toStringAsFixed(2)}",
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: transaction["amount"] < 0 ? Colors.red : Colors.green,
-          ),
-        ),
-      ),
+    return Scaffold(
+      appBar: AppBar(title: Text("Home")),
+      body: isPermissionGranted
+          ? transactionMessages.isNotEmpty
+              ? ListView.builder(
+                  itemCount: transactionMessages.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(transactionMessages[index].body!),
+                      subtitle: Text(transactionMessages[index].address!),
+                    );
+                  },
+                )
+              : Center(child: Text("No transaction messages found."))
+          : Center(child: CircularProgressIndicator()),
     );
   }
 }
 
 
 // import 'package:flutter/material.dart';
-// import '../services/sms_service.dart';
-// import '../services/transaction_service.dart';
+// import 'package:permission_handler/permission_handler.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:telephony/telephony.dart';
 
 // class HomeScreen extends StatefulWidget {
 //   @override
@@ -222,168 +184,154 @@ class TransactionCard extends StatelessWidget {
 // }
 
 // class _HomeScreenState extends State<HomeScreen> {
-//   final SmsService _smsService = SmsService();
-//   final TransactionService _transactionService = TransactionService();
-//   List<Map<String, dynamic>> transactions = [];
-//   double totalExpenses = 0.0;
+//   bool isPermissionGranted = false;
+//   String? selectedOption;
+//   String? extractedAccountNumber;
+//   List<SmsMessage> transactionMessages = [];
+//   final Telephony telephony = Telephony.instance;
 
 //   @override
 //   void initState() {
 //     super.initState();
-//     _fetchSmsTransactions();
+//     _checkPermission();
 //   }
 
-//   void _fetchSmsTransactions() async {
-//     List<Map<String, dynamic>> fetchedTransactions = await _smsService.fetchTransactionSms();
-//     double total = 0.0;
-//     for (var transaction in fetchedTransactions) {
-//       _transactionService.addTransaction(transaction);
-//       total += double.parse(transaction["amount"]);
+//   Future<void> _checkPermission() async {
+//     var status = await Permission.sms.status;
+
+//     if (status.isGranted) {
+//       setState(() => isPermissionGranted = true);
+//       _fetchTransactionMessages(); // Fetch messages immediately
+//     } else {
+//       _requestPermission();
 //     }
+//   }
+
+//   Future<void> _requestPermission() async {
+//     var status = await Permission.sms.request();
+
+//     if (status.isGranted) {
+//       setState(() => isPermissionGranted = true);
+//       _fetchTransactionMessages(); // Fetch messages after granting permission
+//     } else {
+//       _showPermissionDeniedDialog();
+//     }
+//   }
+
+//   Future<void> _showPermissionDeniedDialog() async {
+//     showDialog(
+//       context: context,
+//       barrierDismissible: false,
+//       builder: (context) => AlertDialog(
+//         title: Text("Permission Required"),
+//         content: Text("This app needs SMS permission to read transaction messages."),
+//         actions: [
+//           TextButton(
+//             onPressed: () async {
+//               Navigator.pop(context);
+//               await _requestPermission();
+//             },
+//             child: Text("Grant Permission"),
+//           ),
+//           TextButton(
+//             onPressed: () => Navigator.pop(context),
+//             child: Text("Cancel"),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+
+//   Future<void> _fetchTransactionMessages() async {
+//     List<SmsMessage> messages = await telephony.getInboxSms(
+//       columns: [SmsColumn.BODY, SmsColumn.ADDRESS, SmsColumn.DATE],
+//     );
+
+//     List<SmsMessage> filteredMessages = messages.where((msg) {
+//       return _isTransactionMessage(msg.body!);
+//     }).toList();
+
+//     if (filteredMessages.isNotEmpty) {
+//       extractedAccountNumber = _extractAccountNumber(filteredMessages.first.body!);
+//     }
+
 //     setState(() {
-//       transactions = _transactionService.getTransactions();
-//       totalExpenses = total;
+//       transactionMessages = filteredMessages;
+//     });
+
+//     if (extractedAccountNumber != null) {
+//       _showSelectionDialog();
+//     }
+//   }
+
+//   bool _isTransactionMessage(String message) {
+//     List<String> keywords = ["debited", "txn", "transaction", "UPI", "balance", "INR"];
+//     return keywords.any((keyword) => message.toLowerCase().contains(keyword));
+//   }
+
+//   String? _extractAccountNumber(String message) {
+//     RegExp regExp = RegExp(r'A\/C\s?[Xx]*?(\d{4})'); // Extracts last 4 digits
+//     Match? match = regExp.firstMatch(message);
+//     return match != null ? match.group(1) : null;
+//   }
+
+//   Future<void> _showSelectionDialog() async {
+//     showDialog(
+//       context: context,
+//       barrierDismissible: false,
+//       builder: (context) => AlertDialog(
+//         title: Text("A/C No. $extractedAccountNumber"),
+//         content: Column(
+//           mainAxisSize: MainAxisSize.min,
+//           children: [
+//             _buildOptionTile("Account Number"),
+//             _buildOptionTile("Credit Card"),
+//             _buildOptionTile("Debit Card"),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+
+//   Widget _buildOptionTile(String option) {
+//     return ListTile(
+//       title: Text(option),
+//       leading: Radio<String>(
+//         value: option,
+//         groupValue: selectedOption,
+//         onChanged: (value) {
+//           _saveSelection(value!);
+//           Navigator.pop(context);
+//         },
+//       ),
+//     );
+//   }
+
+//   Future<void> _saveSelection(String value) async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     await prefs.setString("selected_option", value);
+//     setState(() {
+//       selectedOption = value;
 //     });
 //   }
 
 //   @override
 //   Widget build(BuildContext context) {
 //     return Scaffold(
-//       backgroundColor: Colors.black,
-//       appBar: AppBar(
-//         title: const Text(
-//           "Expense Tracker",
-//           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-//         ),
-//         backgroundColor: Colors.black,
-//         actions: [
-//           IconButton(
-//             icon: const Icon(Icons.account_circle, size: 28),
-//             onPressed: () {
-//               // Navigate to Profile Page (Future Implementation)
-//             },
-//           ),
-//           IconButton(
-//             icon: const Icon(Icons.logout, size: 28),
-//             onPressed: () {
-//               // Navigate back to Login Screen
-//               Navigator.pushReplacementNamed(context, "/login");
-//             },
-//           ),
-//         ],
-//       ),
-//       body: Padding(
-//         padding: const EdgeInsets.all(16.0),
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             // Total Expense Section
-//             Container(
-//               padding: const EdgeInsets.all(16),
-//               decoration: BoxDecoration(
-//                 color: Colors.grey[900],
-//                 borderRadius: BorderRadius.circular(12),
-//               ),
-//               child: Row(
-//                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                 children: [
-//                   const Text(
-//                     "Total Expenses",
-//                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-//                   ),
-//                   Text(
-//                     "₹${totalExpenses.toStringAsFixed(2)}",
-//                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.redAccent),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//             const SizedBox(height: 20),
-
-//             const Text(
-//               "Recent Transactions",
-//               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-//             ),
-//             const SizedBox(height: 10),
-
-//             // Transaction List
-//             Expanded(
-//               child: transactions.isEmpty
-//                   ? const Center(
-//                       child: Text(
-//                         "No transactions found",
-//                         style: TextStyle(color: Colors.white70, fontSize: 16),
-//                       ),
-//                     )
-//                   : ListView.builder(
-//                       itemCount: transactions.length,
-//                       itemBuilder: (context, index) {
-//                         final transaction = transactions[index];
-//                         return TransactionCard(transaction: transaction);
-//                       },
-//                     ),
-//             ),
-//           ],
-//         ),
-//       ),
-
-//       // Floating Action Button for future transaction addition
-//       floatingActionButton: FloatingActionButton(
-//         backgroundColor: Colors.blueAccent,
-//         child: const Icon(Icons.add, color: Colors.white),
-//         onPressed: () {
-//           // Future: Add Manual Transaction
-//         },
-//       ),
+//       appBar: AppBar(title: Text("Home")),
+//       body: isPermissionGranted
+//           ? transactionMessages.isNotEmpty
+//               ? ListView.builder(
+//                   itemCount: transactionMessages.length,
+//                   itemBuilder: (context, index) {
+//                     return ListTile(
+//                       title: Text(transactionMessages[index].body!),
+//                       subtitle: Text(transactionMessages[index].address!),
+//                     );
+//                   },
+//                 )
+//               : Center(child: Text("No transaction messages found."))
+//           : Center(child: CircularProgressIndicator()),
 //     );
-//   }
-// }
-
-// // Transaction Card UI
-// class TransactionCard extends StatelessWidget {
-//   final Map<String, dynamic> transaction;
-
-//   const TransactionCard({super.key, required this.transaction});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Card(
-//       color: Colors.grey[900],
-//       margin: const EdgeInsets.symmetric(vertical: 8),
-//       child: ListTile(
-//         leading: CircleAvatar(
-//           backgroundColor: getCategoryColor(transaction["category"]),
-//           child: const Icon(Icons.attach_money, color: Colors.white),
-//         ),
-//         title: Text(
-//           "₹${transaction["amount"]} - ${transaction["recipient"]}",
-//           style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-//         ),
-//         subtitle: Text(
-//           "Account: ****${transaction["accountNumber"]} | ${transaction["category"]}",
-//           style: const TextStyle(color: Colors.grey),
-//         ),
-//         trailing: Text(
-//           transaction["date"],
-//           style: const TextStyle(color: Colors.white54, fontSize: 12),
-//         ),
-//       ),
-//     );
-//   }
-
-//   // Function to assign color based on transaction category
-//   Color getCategoryColor(String category) {
-//     switch (category) {
-//       case "Food":
-//         return Colors.orange;
-//       case "Shopping":
-//         return Colors.blue;
-//       case "Transport":
-//         return Colors.green;
-//       case "Bills":
-//         return Colors.purple;
-//       default:
-//         return Colors.grey;
-//     }
 //   }
 // }
