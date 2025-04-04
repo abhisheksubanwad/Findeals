@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
+import 'forgot_password.dart'; 
 import '../services/firebase_auth_service.dart';
 import '../widgets/custom_text.dart';
 import '../widgets/social_login_button.dart';
@@ -31,8 +32,13 @@ class LoginScreen extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () {}, 
-                child: const Text("Forgot?", style: TextStyle(color: Colors.blue))
+                onPressed: () {
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (context) => ForgotPasswordScreen())
+                  );
+                },
+                child: const Text("Forgot Password?", style: TextStyle(color: Colors.blue)),
               ),
             ),
             
@@ -110,4 +116,4 @@ class LoginScreen extends StatelessWidget {
       ),
     );
   }
-}   
+}
