@@ -1,77 +1,48 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // Signup with Email & Password
+  // Sign Up with Email & Password
   Future<User?> signUpWithEmail(String email, String password) async {
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      await userCredential.user?.sendEmailVerification(); // Send Email Verification
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       return userCredential.user;
     } catch (e) {
-      print("Error in signup: $e");
+      print("Signup Error: $e");
       return null;
     }
   }
 
-  // Login with Email & Password
+  // Sign In with Email & Password
   Future<User?> signInWithEmail(String email, String password) async {
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      if (userCredential.user != null && userCredential.user!.emailVerified) {
-        return userCredential.user;
-      } else {
-        print("Please verify your email first.");
-        return null;
-      }
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(email: email, password: password);
+      return userCredential.user;
     } catch (e) {
-      print("Error in login: $e");
+      print("Login Error: $e");
       return null;
     }
   }
 
-  // Sign Out
-  Future<void> signOut() async {
-    await _auth.signOut();
-  }
-
-  // Phone Authentication - Send OTP
-  Future<void> verifyPhoneNumber(String phoneNumber, Function(String) codeSent) async {
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await _auth.signInWithCredential(credential);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        print("Verification Failed: $e");
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        codeSent(verificationId);
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {},
-    );
-  }
-
-  // Verify OTP Code
-  Future<User?> verifyOTP(String verificationId, String smsCode) async {
+  // Google Sign-In
+  Future<User?> signInWithGoogle() async {
     try {
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: verificationId,
-        smsCode: smsCode,
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
 
       UserCredential userCredential = await _auth.signInWithCredential(credential);
       return userCredential.user;
     } catch (e) {
-      print("OTP Verification Failed: $e");
+      print("Google Sign-In Error: $e");
       return null;
     }
   }

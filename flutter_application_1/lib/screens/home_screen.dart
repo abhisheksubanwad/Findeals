@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:telephony/telephony.dart';
 import 'package:intl/intl.dart';
+import '../screens/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -175,6 +176,15 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', false); // Reset login state
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
+  }
+
   Widget _buildTransactionList() {
     String formattedDate = DateFormat('dd MMM yyyy').format(selectedDate);
     List<Map<String, dynamic>> filteredTransactions =
@@ -208,7 +218,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Transactions"),
-        actions: [IconButton(icon: Icon(Icons.search), onPressed: () {})],
+        actions: [
+          IconButton(icon: Icon(Icons.logout), onPressed: _logout), // Logout Button
+        ],
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(60),
           child: Padding(
