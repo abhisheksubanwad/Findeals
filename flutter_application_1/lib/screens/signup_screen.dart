@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import '../services/firebase_auth_service.dart';
-import 'home_screen.dart';
 import '../widgets/custom_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// import 'home_screen.dart';
+import '../home_screen/home_screen.dart';
 
 class SignupScreen extends StatelessWidget {
   final FirebaseAuthService _authService = FirebaseAuthService();
