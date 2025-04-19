@@ -4,8 +4,7 @@ import 'forgot_password.dart';
 import '../services/firebase_auth_service.dart';
 import '../widgets/custom_text.dart';
 import '../widgets/social_login_button.dart';
-
-// import './home_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../home_screen/home_screen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -52,10 +51,11 @@ class LoginScreen extends StatelessWidget {
                 var user = await _authService.signInWithEmail(email, password);
 
                 if (user != null) {
-                  // User exists -> Login successful
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
+                  prefs.setBool('isLoggedIn', true);
+
                   Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen()));
                 } else {
-                  // User does not exist -> Prompt to sign up
                   _showSignupDialog(context);
                 }
               },
@@ -74,6 +74,8 @@ class LoginScreen extends StatelessWidget {
               onPressed: () async {
                 var user = await _authService.signInWithGoogle();
                 if (user != null) {
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
+                  prefs.setBool('isLoggedIn', true);
                   Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen()));
                 }
               }
@@ -95,7 +97,6 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  // Function to show sign-up prompt if user doesn't exist
   void _showSignupDialog(BuildContext context) {
     showDialog(
       context: context,
