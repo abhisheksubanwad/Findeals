@@ -4,6 +4,8 @@ import 'package:hive/hive.dart';
 import '../providers/transaction_provider.dart';
 import '../models/transaction_data.dart';
 import '../home_screen/analytics/analytics_screen.dart';
+import '../home_screen/analytics/accounts_page.dart';
+
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -36,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
     HomeScreenContent(),
     AnalyticsScreen(),
     Placeholder(),
-    Placeholder(),
+    AccountPage(),
   ];
 
   @override

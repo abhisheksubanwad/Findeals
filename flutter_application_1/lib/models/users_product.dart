@@ -66,7 +66,7 @@ class ProductParser {
   Map<String, List<String>> bankAliases = {
     "HDFC": ["HDFC", "HDFCBK", "HDFC Bank"],
     "ICICI": ["ICICI", "ICICIBANK", "ICICI Bank"],
-    "SBI": ["SBI", "SBIINB", "State Bank of India"],
+    "SBI": ["SBI", "SBIINB", "State Bank of India", "SBIUPI"],
     "AXIS": ["AXIS", "AXISBANK", "AXIS Bank"],
     "KOTAK": ["KOTAK", "KOTAKBANK", "KOTAK Mahindra"],
     "BOB": ["BOB", "BANK OF BARODA"],
