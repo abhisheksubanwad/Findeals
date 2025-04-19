@@ -135,8 +135,8 @@ public class MainActivity extends FlutterActivity {
             if (bankMatch) {
                 for (String keyword : keywords) {
                     if (lowerBody.contains(keyword)) {
-                        if (lowerBody.matches(".\\bxx[0-9]{3,4}\\b.")
-                                || lowerBody.matches(".\\bending in [0-9]{4}\\b.")) {
+                        if (lowerBody.matches(".*\\bxx[0-9]{3,4}\\b.*")
+                                || lowerBody.matches(".*\\bending in [0-9]{4}\\b.*")) {
                             System.out.println("✅ Transaction Identified: " + sender + " | " + body);
                             return true;
                         }
