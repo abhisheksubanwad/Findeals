@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "888086864761",
+    "project_id": "findeals-9bdcc",
+    "storage_bucket": "findeals-9bdcc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:888086864761:android:b2fc9f3d2b8863120505a8",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsqEu4rmaLfaNBWP1_7IrsAkbXZmfFhEM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

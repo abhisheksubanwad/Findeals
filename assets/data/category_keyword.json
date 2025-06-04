@@ -1,0 +1,13 @@
+{
+    "Groceries": ["kirana", "store", "mart", "bazaar", "grocery", "provision", "supermarket", "dmart", "more", "fresh"],
+    "Health & Wellness": ["pharma", "medical", "meds", "medicine", "hospital", "clinic", "doctor", "pathology", "health"],
+    "Recharge & Bill Payments": ["bill", "recharge", "electricity", "broadband", "water", "gas", "upi", "postpaid", "prepaid", "dth"],
+    "Fuel": ["fuel", "petrol", "diesel", "gas station", "hpcl", "ioc", "bharat petroleum", "bpcl"],
+    "Transportation": ["uber", "ola", "rapido", "taxi", "cab", "bus", "auto", "ride", "shuttle"],
+    "Travel": ["flight", "airline", "train", "irctc", "goibibo", "makemytrip", "expedia", "travel", "ticket", "trip"],
+    "Entertainment": ["netflix", "hotstar", "prime", "zee", "sonyliv", "movie", "ticketnew", "bookmyshow", "entertainment", "game"],
+    "Shopping": ["amazon", "flipkart", "myntra", "snapdeal", "ajio", "meesho", "shopping", "marketplace", "shop"],
+    "Food and Dining": ["swiggy", "zomato", "dominos", "pizza", "restaurant", "cafe", "eating", "food", "eatery", "delivery"],
+    "Electronics": ["laptop", "mobile", "tv", "electronics", "gadget", "device", "headphone", "tech", "mi", "samsung", "apple"]
+  }
+  
